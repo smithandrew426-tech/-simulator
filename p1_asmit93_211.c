@@ -1,0 +1,337 @@
+/*
+Andrew Smith G01373154
+CS 262, Lab section 211
+Project 1: Simulates the game сарлагийн эврийг.
+*/
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
+
+void startGame(int *pkPtr, int *ckPtr, int *ppPtr, int *cpPtr);
+void playerTurn(int *ppPtr, int *cpPtr);
+void cpuTurn(int *cpPtr);
+
+void clearBuffer(){
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+//int randomNumber();
+int throwHorn();
+
+
+int main(){
+    char buffer[10]; // Buffer for user input
+
+    int playerKopek = 10; // Player's starting Kopek
+    int *pkPtr = &playerKopek;
+
+    int cpuKopek = 10; // CPU's starting Kopek
+    int *ckPtr = &cpuKopek;
+
+    int playerPoints = 0; // Player's starting points
+    int *ppPtr = &playerPoints;
+
+    int cpuPoints = 0; // CPU's starting points
+    int *cpPtr = &cpuPoints;
+
+    int randSeed = 0; // Seed for random number generation
+
+    char playerChoice = ' '; // Stores player's choice for gameplay
+    char playAgain = 'y';    // Controls replay loop
+    int Playing = 1;         // Game loop control variable
+
+    while (Playing) {
+        // Prompt for random number seed each new game
+        printf("\nHello Player, please enter a random number seed: ");
+        if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+            sscanf(buffer, "%i", &randSeed);
+        }
+        srand(randSeed); // Seed the random number generator
+
+        // Ask if the player would like to play
+        printf("\nWould you like to play? (Y/N) ");
+        if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+            sscanf(buffer, " %c", &playerChoice);
+            playerChoice = tolower(playerChoice);
+        } else {
+            playerChoice = 'n';
+        }
+    
+        if (playerChoice == 'y') {
+            startGame(pkPtr, ckPtr, ppPtr, cpPtr); // Start the game
+            printf("You now have %i Kopek left.\n", *pkPtr);
+            printf("The cpu has %i Kopek left.\n", *ckPtr);
+    
+            // Ask if the player would like to play again
+            printf("Would you like to play again? (Y/N) ");
+            if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+                sscanf(buffer, " %c", &playAgain);
+                playAgain = tolower(playAgain);
+            } else {
+                playAgain = 'n';
+            }
+    
+            if (playAgain == 'n') {
+                Playing = 0; // Exit the game loop
+                printf("That's fine, have a good day\n");
+            } else if (playAgain == 'y') {
+                // Reset game state and continue to the top of the loop
+                if (*pkPtr == 0) {
+                    printf("Sorry, you're out of Kopek to bet.\n");
+                    Playing = 0;
+                } else if (*ckPtr == 0) {
+                    printf("Sorry, the CPU does not have any more Kopek to bet.\n");
+                } else {
+                    *ppPtr = 0; // Reset points for a new round
+                    *cpPtr = 0;
+                    continue; // Go back to ask for a new seed
+                }
+            } else {
+                printf("Invalid input, please enter Y or N.\n");
+            }
+        } else if (playerChoice == 'n') {
+            printf("That's fine, have a good day\n");
+            Playing = 0; // Exit the game loop
+        } else {
+            printf("Invalid input, please enter Y or N.\n");
+        }
+    }
+
+    
+
+    return 0;
+}
+
+
+
+void startGame(int *pkPtr, int *ckPtr, int *ppPtr, int *cpPtr){
+    
+    // Buffer for input and variables for user choices
+    char buffer[10];
+    char askAgain = 'y';
+    char Choice = ' ';
+    
+    printf("Would you like to go first(Y/N)? ");
+
+    // Loop to ensure valid input (Y/N) for going first
+    //////Code causing the loop///////////////////////////////////////////////////
+    while (askAgain == 'y') {
+        fgets(buffer, sizeof(buffer), stdin);
+        buffer[strcspn(buffer, "\n")] = 0; // Trim newline character
+
+        if (strlen(buffer) > 0) {
+            sscanf(buffer, " %c", &Choice);
+            Choice = tolower(Choice);
+        } else {
+            printf("Invalid input. Please enter Y or N: ");
+            continue;
+        }
+
+        if (Choice != 'y' && Choice != 'n') {
+            printf("Please enter Y or N: ");
+        } else {
+            askAgain = 'n';
+        }
+    }////////////////////////////////////////////////////////////////////////////////
+
+    // Game loop continues until either the player or CPU reaches 132 points
+    if(Choice == 'y'){
+        while(*ppPtr < 132 && *cpPtr < 132){
+            printf("------Player's Turn-----\n");
+            printf("~First Throw Of The Turn~\n");
+            playerTurn(ppPtr, cpPtr);
+            printf("------Cpu's Turn-----\n");
+            printf("~First Throw Of The Turn~\n");
+            cpuTurn(cpPtr);
+        }
+    }
+    else{
+        while(*ppPtr < 132 && *cpPtr < 132){
+            printf("------Cpu's Turn-----\n");
+            printf("~First Throw Of The Turn~\n");
+            cpuTurn(cpPtr);
+            printf("------Player's Turn-----\n");
+            printf("~First Throw Of The Turn~\n");
+            playerTurn(ppPtr, cpPtr);
+        }
+    }
+
+    // Determine the winner and adjust Kopek accordingly
+    if(*ppPtr >= 132){
+        printf("You've Won!! With a total of %i points!\n", *ppPtr);
+        printf("The cpu lost... With a total of %i points!\n", *cpPtr);
+        *pkPtr+= 1;
+        *ckPtr-= 1;
+    }
+    else{
+        printf("You've lost... With a total of %i points!\n", *ppPtr);
+        printf("The cpu Won!! With a total of %i points!\n", *cpPtr);
+        *pkPtr-= 1;
+        *ckPtr+= 1;
+    }
+
+
+}
+
+
+void playerTurn(int *PlayerpointsPtr, int *ComputerpointsPtr){
+   
+   
+    // Declare variables for the player's turn
+    int randomInt; 
+    int hornPosition;
+    int CurrentPoints = 0;
+    char buffer[10];
+    char askAgain = 'y';
+    int Continue = 1;
+    char playerChoice;
+    
+    
+    // Continue the player's turn until they reach 132 points or choose to stop
+    while(*PlayerpointsPtr < 132 && Continue){
+        randomInt = rand() % (99 + 1); // Generate a random number for the horn throw
+        hornPosition = throwHorn(randomInt); // Determine the points from the horn throw
+        askAgain = 'y';
+        
+        
+        
+        if(hornPosition == -1){
+            CurrentPoints = 0;
+            printf("Points lost\n");
+            printf("^^^Currently points for the round:  %i\n", CurrentPoints);
+            printf("^^^Total Points in the Bank:  %i\n", *PlayerpointsPtr);
+            printf("^^^CPU's points in the Bank:  %i\n", *ComputerpointsPtr);
+            Continue--;
+        }   
+        else if(hornPosition == -2){
+            *PlayerpointsPtr += CurrentPoints;
+            printf("^^^Currently banked points:  %i\n", CurrentPoints);
+            printf("^^^Total Points in the Bank:  %i\n", *PlayerpointsPtr);
+            printf("^^^CPU's points in the Bank:  %i\n", *ComputerpointsPtr);
+            Continue--;
+        }
+        else{
+            CurrentPoints += hornPosition;
+            if((CurrentPoints + *PlayerpointsPtr) >= 132){
+                
+                *PlayerpointsPtr += CurrentPoints;
+                printf("+%i points.\n", hornPosition);
+                printf("^^^Currently banked points:  %i\n", CurrentPoints);
+                printf("^^^Total Points in the Bank:  %i\n", *PlayerpointsPtr);
+                printf("^^^CPU's points in the Bank:  %i\n", *ComputerpointsPtr);
+                Continue--;
+
+            }
+            else{
+                printf("+%i points.\n", hornPosition);
+                
+                
+                while(askAgain == 'y'){
+                
+                    // Present to continue, see stats, or stop
+                    printf("^^^Currently banked points:  %i\n", CurrentPoints);
+                    printf("^^^Total Points in the Bank:  %i\n", *PlayerpointsPtr);
+                    printf("^^^CPU's points in the Bank:  %i\n", *ComputerpointsPtr);
+                    printf("Would you like to keep throwing? (Y/N) \n");
+              
+                
+                    printf("Would you like to keep throwing? (Y/N) \n");
+                    if (fgets(buffer, sizeof(buffer), stdin) != NULL) {
+                    // Process only the first non-whitespace character in the buffer
+                        sscanf(buffer, " %c", &playerChoice);
+                            playerChoice = tolower(playerChoice);
+                    } else {
+                    // Handle EOF or input error if necessary
+                    playerChoice = 'n';  // Or some default behavior
+                    }
+                
+                    printf("\n");
+
+                    if(playerChoice == 'y'){
+                        askAgain = 'n';
+                    }
+                    else if(playerChoice == 'n'){
+                        askAgain = 'n';
+                        *PlayerpointsPtr += CurrentPoints;
+                        printf("totalPoints: %i\n", *PlayerpointsPtr);
+                        CurrentPoints = 0;
+                        Continue = 0;
+                    }
+                    else{
+                        printf("please enter Y/N");
+                        printf("\n");
+                    }
+                }
+                
+            }
+        }
+    }
+}
+
+
+// Function to handle the CPU's turn
+void cpuTurn(int *computerPointaPtr){
+    
+    int randomInt; 
+    int hornPosition;
+    int Bank = 0;
+    int Continue = 1;
+    
+    // Continue the CPU's turn until reaching 132 points or stopping
+    while(*computerPointaPtr < 132 && Continue){
+        randomInt = rand() % (99 + 1); // Generate a random number for the horn throw
+        hornPosition = throwHorn(randomInt); // Determine the points from the horn throw
+        
+        printf("randomInt: %i\n", randomInt);
+        if(hornPosition == -1){
+            Continue--; // End turn if horn position is -1 (points lost)
+        }   
+        else if(hornPosition == -2){
+            *computerPointaPtr += Bank; // Add banked points to total if horn position is -2
+            Continue--;
+        }
+        else if((Bank + *computerPointaPtr) >= 132){
+            *computerPointaPtr += Bank; // Add points if they exceed or match the goal
+            Continue--;
+        }
+        else if(Bank > 25){
+            *computerPointaPtr += Bank; // CPU decides to stop if bank is 25 or more
+            Continue--;
+        }
+        else{
+            printf("+%i points.\n", hornPosition);
+            Bank += hornPosition; // Accumulate points in the bank
+        }
+    }
+}
+
+
+// Function to simulate the horn throw and return the points earned
+int throwHorn(int randomInt){
+
+    if(randomInt >= 0 && randomInt <= 16){
+        printf("Dooshni Ever! Should of stopped while you were ahead.\n");
+        return -1; // Indicates loss of points
+
+    } else if(randomInt >= 17 && randomInt <= 32){
+        printf("Khürtel Ever! You've earned enough points already.\n");
+        return -2; // Indicates end of turn with points banked
+
+    } else if(randomInt >= 33 && randomInt <= 55){
+        return 2;
+
+    } else if(randomInt >= 56 && randomInt <= 68){
+        return 3;
+
+    } else if(randomInt >= 69 && randomInt <= 83){
+        return 5;
+
+    } else if(randomInt >= 84 && randomInt <= 92){
+        return 10;
+
+    } else{
+        return 15;
+    }
+}
